@@ -1,0 +1,15 @@
+[Unit]
+Description = Okmok data grapher
+After = network.target
+
+[Service]
+ExecStart = /data/OkmokWeb/env/bin/uwsgi -i /data/OkmokWeb/okmokweb.ini
+User=nginx
+Group=nginx
+RuntimeDirectory = okmokweb
+RuntimeDirectoryMode = 777
+Restart=on-failure
+RestartSec=15s
+
+[Install]
+WantedBy = multi-user.target
