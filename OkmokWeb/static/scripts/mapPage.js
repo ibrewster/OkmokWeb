@@ -21,6 +21,8 @@ $(document).ready(function() {
     $(document).on('click', 'img.closeBtn', closeGraph);
     $(document).on('click', 'span.dateBtns button', dateRangeClicked);
     $(document).on('click', 'input.channelOption', generateGraphs);
+    $(document).on('click', 'button.downloadData', downloadData);
+
     $('img.menu').click(showMenu);
 
     $(document).on('change', 'div.chartHeader input.date', changeDateRangeInput);
@@ -33,6 +35,28 @@ $(document).ready(function() {
 
     initMap();
 })
+
+function downloadData() {
+    //context should be a button in a graph div header.
+    var chartDiv = $(this).closest('div.chart')
+    var graphDiv = chartDiv.find("div.plotlyPlot")[0];
+    //get date range displayed
+    var x_range = graphDiv.layout.xaxis.range;
+    //get station and channel
+    var chanInfo = chartDiv.find('.channelOption:checked').data();
+
+    var args = {
+        'factor': 100,
+        'dateFrom': x_range[0],
+        'dateTo': x_range[1],
+    }
+
+    Object.assign(args, chanInfo);
+
+    var params = $.param(args);
+    var url = 'get_full_data?' + params;
+    window.location.href = url;
+}
 
 function initMap() {
     map = new google.maps.Map(document.getElementById('map'), {
@@ -440,6 +464,9 @@ function createChartHeader(station, site) {
 
     //close button
     chartHeader.append("<img src='static/img/RedClose.svg' class='closeBtn noPrint'/>")
+
+    //download button
+    chartHeader.append("<button class='downloadData'>Download Data</button>");
 
     //channel selector title
     var channelSelector = $('<div class="channelSel">');

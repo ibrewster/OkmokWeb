@@ -1,9 +1,11 @@
+import csv
+import json
 import os
 import time
-import json
 import uuid
 
-from datetime import datetime, timedelta, timezone
+from datetime import timezone
+from io import StringIO
 
 from . import app
 from . import utils
@@ -354,40 +356,44 @@ def get_graph_data(as_json=True, station=None, sensor = None,
 
     if station is None:
         station = flask.request.args['station']
+
+    if sensor is None:
         sensor = flask.request.args['sensor']
 
+    if date_from is None:
         try:
             date_from = parse(flask.request.args.get('dateFrom'))
-            date_to = parse(flask.request.args.get('dateTo'))
             date_from = date_from.replace(tzinfo = timezone.utc, hour = 0,
                                           minute = 0, second = 0, microsecond = 0)
+        except (TypeError, ValueError):
+            date_from = None
+
+    if date_to is None:
+        try:
+            date_to = parse(flask.request.args.get('dateTo'))
             date_to = date_to.replace(tzinfo = timezone.utc, hour = 23,
                                       minute = 59, second = 59, microsecond = 9999)
         except (TypeError, ValueError):
-            date_to = datetime.now(tz = timezone.utc).replace(hour = 23,
-                                                              minute = 59,
-                                                              second = 59,
-                                                              microsecond = 9999)
-            date_from = date_to - timedelta(days = 7)
+            date_to = None
 
-        if factor == "auto":
-            span = (date_to - date_from).total_seconds()
-            if span > 2592000:  # One month
-                factor = 1
-            elif span > 1209600:  # two weeks
-                factor = 5
-            elif span > 604800:  # one week
-                factor = 25
-            elif span > 172800:  # two days
-                factor = 50
-            else:
-                factor = 100
-
+    if factor == "auto":
+        span = (date_to - date_from).total_seconds()
+        if span > 2592000:  # One month
+            factor = 1
+        elif span > 1209600:  # two weeks
+            factor = 5
+        elif span > 604800:  # one week
+            factor = 25
+        elif span > 172800:  # two days
+            factor = 50
         else:
-            try:
-                factor = int(factor)
-            except ValueError:
-                return flask.abort(422)
+            factor = 100
+
+    else:
+        try:
+            factor = int(factor)
+        except ValueError:
+            return flask.abort(422)
 
     data = load_db_data(station, sensor,
                         factor=factor)
@@ -410,6 +416,40 @@ PERCENT_LOOKUP = {
     50: '2=0',  # keep every other row
     75: '4>0'  # skip every fourth row
 }
+
+
+@app.route('/get_full_data')
+def get_full_data():
+    station = flask.request.args['station']
+    sensor = flask.request.args['sensor']
+    date_from = flask.request.args.get('dateFrom')
+    date_to = flask.request.args.get('dateTo')
+    filename = f"{station}-{sensor}-{date_from}-{date_to}.csv"
+
+    data = get_graph_data(False)
+    # format as a CSV
+
+    del data['info']
+
+    header = []
+    csv_data = []
+    for col, val in data.items():
+        csv_data.append(val)
+        if col == "dates":
+            col = "date"
+        header.append(col)
+
+    csv_data = numpy.asarray(csv_data).T
+
+    csv_file = StringIO()
+    csv_writer = csv.writer(csv_file)
+    csv_writer.writerow(header)
+    csv_writer.writerows(csv_data)
+
+    output = flask.make_response(csv_file.getvalue())
+    output.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    output.headers["Content-type"] = "text/csv"
+    return output
 
 
 def load_db_data(station, sensor,
