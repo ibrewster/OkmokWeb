@@ -15,7 +15,6 @@ import numpy
 import flask
 import flask.helpers
 
-
 from dateutil.parser import parse
 from PIL import Image
 from psycopg2 import sql
@@ -418,41 +417,21 @@ def load_db_data(station, sensor,
                  factor = 100):
 
     station = station.lower()
-    cols = ['co2filtered', 'co2raw', 'sensor_temp'] if sensor == 'CO2' \
-        else ['date_time', 'tempc', 'moisture_mineral', 'moisture_soilless', 'soil_conductivity', 'electric_cond']
-
     args = []
+    SQL = '''SELECT {fields}, to_char({timeCol},'YYYY-MM-DD"T"HH24:MI:SSZ') as dates FROM {table}'''
+
     if sensor == 'CO2' and station == 'okce':
+        fields = ['co2filtered', 'co2raw', 'sensor_temp']
+        time_column = "timeRecorded"
         station = 'okce_only'
-        SQL = '''SELECT {fields}, to_char("timeRecorded",'YYYY-MM-DD"T"HH24:MI:SSZ') as "timeRecorded" FROM {table} WHERE true'''
-        LIMIT_SQL = """
-    SELECT
-        to_char(mintime AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SSZ'),
-        to_char(maxtime AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SSZ')
-    FROM
-    (SELECT
-        min(timeRecorded) as mintime,
-        max(timeRecorded) as maxtime
-     FROM {}
-    ) s1;
-        """
     else:
-        SQL = "SELECT {fields} FROM {table} WHERE sensor=%s"
-        LIMIT_SQL = """
-    SELECT
-        to_char(mintime AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SSZ'),
-        to_char(maxtime AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SSZ')
-    FROM
-    (SELECT
-        min(date_time) as mintime,
-        max(date_time) as maxtime
-     FROM {}
-     WHERE sensor=%s
-    ) s1;
-        """
+        fields = ['tempc', 'moisture_mineral', 'moisture_soilless', 'soil_conductivity', 'electric_cond']
+        time_column = "date_time"
+        SQL += ' WHERE sensor=%s'
         args.append(sensor)
 
     graph_data = {
+        'dates': [],
         'info': {
 
         },
@@ -460,56 +439,71 @@ def load_db_data(station, sensor,
 
     # pre-populate graph_data. A defaultdict might work as well,
     # but this ensures a well-defined list of fields.
-    for col in cols:
+    for col in fields:
         graph_data[col] = []
-    if sensor == "CO2":
-        graph_data['timeRecorded'] = []
 
-    # if date_from is not None:
-        # SQL += " AND datetime>=%s"
-        # args.append(date_from)
-    # if date_to is not None:
-        # SQL += " AND datetime<=%s"
-        # args.append(date_to)
+    adtl_where = []
+    if date_from is not None:
+        adtl_where.append("{timeCol}>=%s")
+        args.append(date_from)
+    if date_to is not None:
+        adtl_where.append("{timeCol}<=%s")
+        args.append(date_to)
+
+    if adtl_where:
+        if 'WHERE' not in SQL:
+            SQL += ' WHERE '
+        SQL += " AND ".join(adtl_where)
 
     # if factor != 100:
         # print("Running query with factor", factor)
         # postfix = f" AND epoch%%{PERCENT_LOOKUP.get(factor,'1=0')}"
         # SQL += postfix
 
-    SQL += " ORDER BY date_time" if sensor != 'CO2' else ' ORDER BY "timeRecorded"'
+    SQL += " ORDER BY {timeCol}"
 
-    cols = [sql.Identifier(col) for col in cols]
+    fields = [sql.Identifier(col) for col in fields]
     data_query = sql.SQL(SQL).format(
-        fields = sql.SQL(',').join(cols),
-        table = sql.Identifier(station)
+        fields = sql.SQL(',').join(fields),
+        table = sql.Identifier(station),
+        timeCol = sql.Identifier(time_column)
     )
 
-    limit_query = sql.SQL(LIMIT_SQL).format(sql.Identifier(station))
+    LIMIT_SQL = """
+SELECT
+    to_char(mintime AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SSZ'),
+    to_char(maxtime AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SSZ')
+FROM
+(SELECT
+    min({timeCol}) as mintime,
+    max({timeCol}) as maxtime
+ FROM {table}
+) s1;
+    """
+    limit_query = sql.SQL(LIMIT_SQL).format(timeCol = sql.Identifier(time_column),
+                                            table = sql.Identifier(station))
 
     with utils.db_cursor() as cursor:
-        # cursor.execute(limit_query, args)
-        # info = cursor.fetchone()
-        # graph_data['info']['min_date'] = info[0]
-        # graph_data['info']['max_date'] = info[1]
-
-        # SQL_HEADER = ('dates', 'freq_max10', 'sd_freq_max10',
-        # 'ssa_max10', 'sd_ssa_max10')
+        cursor.execute(limit_query, args)
+        info = cursor.fetchone()
+        graph_data['info']['min_date'] = info[0]
+        graph_data['info']['max_date'] = info[1]
 
         t1 = time.time()
         cursor.execute(data_query, args)
         if cursor.rowcount == 0:
             return graph_data  # No data
         print("Ran query in", time.time() - t1)
+
         headers = [desc[0] for desc in cursor.description]
-        results = cursor.fetchall()
-        results = tuple(zip(*results))
+
+        # Return results as a list for each value, rather than records.
+        results = tuple(zip(*cursor.fetchall()))
         t3 = time.time()
         print("Got results in", t3 - t1)
         for key, value in zip(headers, results):
-            if key in ('date_time', 'timeRecorded'):
-                key = 'dates'
-                if isinstance(value[0], (str, bytes)):
+            if key == 'dates':
+                if isinstance(value[0], (str, bytes)) and '\x02DATA:' in value[0]:
                     value = numpy.char.replace(value, '\x02DATA:', '')
                     value = numpy.char.replace(value, ' ', 'T').tolist()
 

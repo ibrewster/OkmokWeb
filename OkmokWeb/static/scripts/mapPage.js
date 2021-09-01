@@ -36,7 +36,7 @@ $(document).ready(function() {
 
 function initMap() {
     map = new google.maps.Map(document.getElementById('map'), {
-        center: {lat: 53.403867170760485, lng: -168.1461899886922},
+        center: { lat: 53.403867170760485, lng: -168.1461899886922 },
         zoom: 11,
         mapTypeId: google.maps.MapTypeId.TERRAIN,
         scaleControl: true,
@@ -115,18 +115,18 @@ function generateGraphs() {
         'dateTo': dateTo
     }
 
-    var graphDiv=dest.find('.graphArea')
+    var graphDiv = dest.find('.graphArea')
     Plotly.purge(graphDiv[0]);
     graphDiv.find('.noDataWarning').remove();
     graphDiv.append('<div class="loadingMsg">Loading...<div class="loading"></div></div>');
 
     $.get('get_graph_data', reqParams)
-    .done(function(data) {
-        graphResults(data, dest);
-    })
-    .always(function(){
-        graphDiv.find('.loadingMsg').remove();
-    });
+        .done(function(data) {
+            graphResults(data, dest);
+        })
+        .always(function() {
+            graphDiv.find('.loadingMsg').remove();
+        });
 
 }
 
@@ -209,7 +209,7 @@ function setTitle(parentChart) {
     if (typeof(graphDiv.data) == 'undefined') {
         return; //no graph (yet, at least);
     }
-    var range=parseRangeDates(graphDiv.layout.xaxis.range)
+    var range = parseRangeDates(graphDiv.layout.xaxis.range)
 
     var dateFrom = formatDateString(range[0]);
     var dateTo = formatDateString(range[1]);
@@ -448,9 +448,9 @@ function createChartHeader(station, site) {
     radioButtons.append("Sensor: ");
 
     //baseline selector options
-    var channelOptions = ['soil 1 (bottom)','soil 2 (top)']
-    var channelVals=[1,2,'CO2'];
-    if (station=='OKCE'){
+    var channelOptions = ['soil 1 (bottom)', 'soil 2 (top)']
+    var channelVals = [1, 2, 'CO2'];
+    if (station == 'OKCE') {
         channelOptions.push('CO2');
     }
 
@@ -536,7 +536,7 @@ function saveCharts() {
 function generateMapImage() {
     var mapBounds = map.getBounds().toJSON();
     var params = {
-        'map_bounds':mapBounds,
+        'map_bounds': mapBounds,
     };
 
     dom_post('map/download', params);
@@ -575,8 +575,8 @@ function plotGraph(div, data, layout, config) {
 
 function graphResults(respData, dest) {
     //find the div for the east/west graph
-    var data=respData.data;
-    var factor=respData.factor;
+    var data = respData.data;
+    var factor = respData.factor;
     var graphDiv = dest.find('div.graphArea');
 
     var channelOpt = dest.find('.channelOption:checked')
@@ -585,7 +585,7 @@ function graphResults(respData, dest) {
 
     graphDiv.data('minDate', data['info']['min_date']);
     graphDiv.data('maxDate', data['info']['max_date']);
-    graphDiv.data('factor',factor);
+    graphDiv.data('factor', factor);
 
     if (data['dates'].length == 0) {
         //make sure there is no graph in this div
@@ -601,24 +601,25 @@ function graphResults(respData, dest) {
     graphDiv.data('start', data['dates'][0]);
 
 
-    let graph_data=[];
-    let titles=[];
-    if (sensor!='CO2'){
-        titles=['Soil Temp (ºC)', 'WWC-Mineral',
-        'WWC-Soilless', 'Dielectric Permittivity'];
+    let graph_data = [];
+    let titles = [];
+    if (sensor != 'CO2') {
+        titles = ['Soil Temp (ºC)', 'WWC-Mineral',
+            'WWC-Soilless', 'Dielectric Permittivity'
+        ];
         const soil_temp = makePlotDataDict(data['dates'], data['tempc'])
         const wc_mineral = makePlotDataDict(data['dates'], data['moisture_mineral'], 2)
         const wc_soiless = makePlotDataDict(data['dates'], data['moisture_soilless'], 3)
         const dialectric_perm = makePlotDataDict(data['dates'], data['soil_conductivity'], 4)
-    
+
         graph_data = [soil_temp, wc_mineral, wc_soiless, dialectric_perm];
-        if(data['electric_cond'].some(function(i) { return i !== null; })){
+        if (data['electric_cond'].some(function(i) { return i !== null; })) {
             const elec_conduc = makePlotDataDict(data['dates'], data['electric_cond'], 5);
             graph_data.push(elec_conduc);
             titles.push("Elec. Conduc.");
         }
-    } else{
-        titles=['Filtered Conc. (ppm)',
+    } else {
+        titles = ['Filtered Conc. (ppm)',
             'Unfiltered Conc. (ppm)',
             'Sensor Temp (ºC)'
         ];
@@ -627,11 +628,17 @@ function graphResults(respData, dest) {
         const unfiltered = makePlotDataDict(data['dates'], data['co2raw'], 2)
         const temp = makePlotDataDict(data['dates'], data['sensor_temp'], 3)
 
-        graph_data=[filtered,unfiltered,temp];
+        graph_data = [filtered, unfiltered, temp];
     }
 
     var layout = generateSubgraphLayout(graph_data, titles);
-
+    let sensor_desc = sensor;
+    if (sensor != 'CO2') {
+        if (sensor == 1)
+            sensor_desc = `Soil ${sensor} (bottom)`;
+        else
+            sensor_desc = `Soil ${sensor} (top)`;
+    }
     var annotation = [{
         "xref": 'paper',
         "yref": 'paper',
@@ -639,7 +646,7 @@ function graphResults(respData, dest) {
         "xanchor": 'left',
         "y": 1.005,
         "yanchor": 'bottom',
-        "text": `Channel: ${sensor}`,
+        "text": `Sensor: ${sensor_desc}`,
         "showarrow": false,
         "font": { "size": 12 }
     }]
@@ -719,19 +726,17 @@ function generateSubgraphLayout(data, titles) {
             'ygap': 0.05,
         },
         'font': { 'size': 12 },
-        "images": [
-            {
-                "source": `${img_path}/logos.png`,
-                "xref": "paper",
-                "yref": "paper",
-                "x": 1,
-                "y": 1.008,
-                "sizex": .3762,
-                "sizey": .27,
-                "xanchor": "right",
-                "yanchor": "bottom"
-            }
-        ],
+        "images": [{
+            "source": `${img_path}/logos.png`,
+            "xref": "paper",
+            "yref": "paper",
+            "x": 1,
+            "y": 1.008,
+            "sizex": .3762,
+            "sizey": .27,
+            "xanchor": "right",
+            "yanchor": "bottom"
+        }],
     }
 
 
