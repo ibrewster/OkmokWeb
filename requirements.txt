@@ -7,3 +7,4 @@ plotly
 ujson
 kaleido
 pygmt
+flask-compress

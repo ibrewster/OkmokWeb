@@ -7,7 +7,7 @@ import uuid
 from datetime import timezone
 from io import StringIO
 
-from . import app
+from . import app, compress
 from . import utils
 from .utils import stations
 
@@ -351,6 +351,7 @@ def list_stations():
 
 
 @app.route('/get_graph_data')
+@compress.compressed()
 def get_graph_data(as_json=True, station=None, sensor = None,
                    date_from=None, date_to=None, factor = 100):
 
@@ -419,6 +420,7 @@ PERCENT_LOOKUP = {
 
 
 @app.route('/get_full_data')
+@compress.compressed()
 def get_full_data():
     station = flask.request.args['station']
     sensor = flask.request.args['sensor']
@@ -543,9 +545,18 @@ FROM
         print("Got results in", t3 - t1)
         for key, value in zip(headers, results):
             if key == 'dates':
-                if isinstance(value[0], (str, bytes)) and '\x02DATA:' in value[0]:
-                    value = numpy.char.replace(value, '\x02DATA:', '')
-                    value = numpy.char.replace(value, ' ', 'T').tolist()
+                if isinstance(value[0], (str, bytes)):
+                    if '\x02DATA:' in value[0]:
+                        value = numpy.char.replace(value, '\x02DATA:', '')
+                    value = numpy.char.replace(value, ' ', 'T')
+
+                if sensor != 'CO2' and station == 'okce':
+                    # Correct off-by-one-year error
+                    datetime_value = numpy.asarray(value).astype(numpy.datetime64) + numpy.timedelta64(365, 'D')
+                    value = datetime_value.astype(str)
+
+                if hasattr(value, 'tolist'):
+                    value = value.tolist()
 
             graph_data[key] = value
 

@@ -1,9 +1,12 @@
 import flask
+from flask_compress import Compress
 import json
 import os
 
 app = flask.Flask(__name__)
 app.secret_key = 'Correct Horse Battery Staple Secret Key Code'
+app.config["COMPRESS_REGISTER"] = False
+compress = Compress()
 
 # Make sure the home directory is set to a reasonable location (i.e. NOT /root)
 if os.environ.get('HOME', '/root').startswith('/root'):
@@ -25,3 +28,6 @@ pio.orca.config.save()
 app.jinja_env.filters['jsonify'] = json.dumps
 
 from . import mapping
+
+compress.init_app(app)
+
