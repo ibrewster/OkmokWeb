@@ -246,7 +246,7 @@ label {
     display: inline-grid;
     border: 1px solid darkgrey;
     border-top: none;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto 1fr auto;
     height: auto;
     vertical-align: top;
     padding-top: 1px;

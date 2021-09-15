@@ -529,12 +529,13 @@ function createChartDiv(station, site) {
     graph_wrapper.append('<div class="graphArea plotlyPlot">');
     legend_html = '<div id="legend">\
     Legend:\
-    <p>Freq Max10: Median frequency of the ten frequency peaks with higher amplitude.</p>\
-    <p>SD Freq Max10: Standard deviation of the frequency (for the ten frequency peaks with higher amplitude).</p>\
-    <p>SSA Max10: Median amplitude of the ten frequency peaks with higher amplitude.</p>\
-    <p>SD SSA Max10: Standard deviation of the amplitude (for the ten frequency peaks with higher amplitude).</p>\
+    <p>Soil temperature --> °C</p>\
+    <p>WWC - minear soils --> m3 of water/m3 of sample</p>\
+    <p>WWC - soilless media -->  m3 of water/m3 of sample</p>\
+    <p>Dielectric permittivity --> no units</p>\
+    <p>Electrical conductivity --> (μS/cm)</p>\
     </div>';
-    //graph_wrapper.append(legend_html);
+    graph_wrapper.append(legend_html);
     chartDiv.append(graph_wrapper);
 
     return chartDiv;
