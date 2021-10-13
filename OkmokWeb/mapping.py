@@ -428,7 +428,10 @@ def get_full_data():
     date_to = flask.request.args.get('dateTo')
     filename = f"{station}-{sensor}-{date_from}-{date_to}.csv"
 
-    data = get_graph_data(False)
+    date_from = parse(date_from).replace(tzinfo = timezone.utc)
+    date_to = parse(date_to).replace(tzinfo = timezone.utc)
+
+    data = load_db_data(station, sensor, date_from, date_to)
     # format as a CSV
 
     del data['info']
@@ -460,7 +463,7 @@ def load_db_data(station, sensor,
 
     station = station.lower()
     args = []
-    SQL = '''SELECT {fields}, to_char({timeCol},'YYYY-MM-DD"T"HH24:MI:SSZ') as dates FROM {table}'''
+    SQL = '''SELECT {fields}, to_char({timeCol} AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SSZ') as dates FROM {table}'''
 
     if sensor == 'CO2' and station == 'okce':
         fields = ['co2filtered', 'co2raw', 'sensor_temp']
@@ -489,12 +492,14 @@ def load_db_data(station, sensor,
         adtl_where.append("{timeCol}>=%s")
         args.append(date_from)
     if date_to is not None:
-        adtl_where.append("{timeCol}<=%s")
+        adtl_where.append("{timeCol}<%s")
         args.append(date_to)
 
     if adtl_where:
         if 'WHERE' not in SQL:
             SQL += ' WHERE '
+        else:
+            SQL += ' AND '
         SQL += " AND ".join(adtl_where)
 
     # if factor != 100:
