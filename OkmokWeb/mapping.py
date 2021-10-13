@@ -463,15 +463,13 @@ def load_db_data(station, sensor,
 
     station = station.lower()
     args = []
-    SQL = '''SELECT {fields}, to_char({timeCol} AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SSZ') as dates FROM {table}'''
+    SQL = '''SELECT {fields}, to_char(date_time AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SSZ') as dates FROM {table}'''
 
     if sensor == 'CO2' and station == 'okce':
         fields = ['co2filtered', 'co2raw', 'sensor_temp']
-        time_column = "timeRecorded"
         station = 'okce_only'
     else:
         fields = ['tempc', 'moisture_mineral', 'moisture_soilless', 'soil_conductivity', 'electric_cond']
-        time_column = "date_time"
         SQL += ' WHERE sensor=%s'
         args.append(sensor)
 
@@ -489,10 +487,10 @@ def load_db_data(station, sensor,
 
     adtl_where = []
     if date_from is not None:
-        adtl_where.append("{timeCol}>=%s")
+        adtl_where.append("date_time>=%s")
         args.append(date_from)
     if date_to is not None:
-        adtl_where.append("{timeCol}<%s")
+        adtl_where.append("date_time<%s")
         args.append(date_to)
 
     if adtl_where:
@@ -507,13 +505,12 @@ def load_db_data(station, sensor,
         # postfix = f" AND epoch%%{PERCENT_LOOKUP.get(factor,'1=0')}"
         # SQL += postfix
 
-    SQL += " ORDER BY {timeCol}"
+    SQL += " ORDER BY date_time"
 
     fields = [sql.Identifier(col) for col in fields]
     data_query = sql.SQL(SQL).format(
         fields = sql.SQL(',').join(fields),
         table = sql.Identifier(station),
-        timeCol = sql.Identifier(time_column)
     )
 
     LIMIT_SQL = """
@@ -522,13 +519,12 @@ SELECT
     to_char(maxtime AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SSZ')
 FROM
 (SELECT
-    min({timeCol}) as mintime,
-    max({timeCol}) as maxtime
+    min(date_time) as mintime,
+    max(date_time) as maxtime
  FROM {table}
 ) s1;
     """
-    limit_query = sql.SQL(LIMIT_SQL).format(timeCol = sql.Identifier(time_column),
-                                            table = sql.Identifier(station))
+    limit_query = sql.SQL(LIMIT_SQL).format(table = sql.Identifier(station))
 
     with utils.db_cursor() as cursor:
         cursor.execute(limit_query, args)
