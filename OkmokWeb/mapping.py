@@ -463,7 +463,12 @@ def load_db_data(station, sensor,
 
     station = station.lower()
     args = []
-    SQL = '''SELECT {fields}, date_time as dates FROM {table}'''
+
+    dates = '''to_char(date_time,'YYYY-MM-DD"T"HH24:MI:SSZ')'''
+    if sensor != 'CO2' and station == 'okce':
+        dates = '''to_char(date_time+'1 year'::interval,'YYYY-MM-DD"T"HH24:MI:SSZ')'''
+
+    SQL = f'''SELECT {{fields}}, {dates} as dates FROM {{table}}'''
 
     if sensor == 'CO2' and station == 'okce':
         fields = ['co2filtered', 'co2raw', 'sensor_temp']
@@ -474,16 +479,10 @@ def load_db_data(station, sensor,
         args.append(sensor)
 
     graph_data = {
-        'dates': [],
         'info': {
 
         },
     }
-
-    # pre-populate graph_data. A defaultdict might work as well,
-    # but this ensures a well-defined list of fields.
-    for col in fields:
-        graph_data[col] = []
 
     adtl_where = []
     if date_from is not None:
@@ -546,17 +545,11 @@ FROM
         t3 = time.time()
         results = pd.DataFrame(cursor.fetchall(), columns = headers)
         print("Got results in", t3 - t1)
-
-        ############### Correct off-by-one-year error in data###############
-        if sensor != 'CO2' and station == 'okce':
-            results['dates'] = results['dates'] + numpy.timedelta64(365, 'D')
-        ####################################################################
-        results['dates'] = results['dates'].astype(str)
-        print("Converted dates to strings in", time.time() - t3)
         result_dict = results.to_dict('list')
         print("Converted results to dict in", time.time() - t3)
-        graph_data.update(result_dict)
+        # graph_data.update(result_dict)
+        result_dict.update(graph_data)
 
         print("processed results in", time.time() - t3)
-        print("Got", len(graph_data['dates']), "rows in", time.time() - t1, "seconds")
-        return graph_data
+        print("Got", len(result_dict['dates']), "rows in", time.time() - t1, "seconds")
+        return result_dict
