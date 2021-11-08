@@ -463,7 +463,7 @@ def load_db_data(station, sensor,
 
     station = station.lower()
     args = []
-    SQL = '''SELECT {fields}, to_char(date_time AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SSZ') as dates FROM {table}'''
+    SQL = '''SELECT {fields}, date_time as dates FROM {table}'''
 
     if sensor == 'CO2' and station == 'okce':
         fields = ['co2filtered', 'co2raw', 'sensor_temp']
@@ -533,6 +533,7 @@ FROM
         graph_data['info']['max_date'] = info[1]
 
         t1 = time.time()
+        cursor.execute("SET TIMEZONE='UTC'")
         cursor.execute(data_query, args)
         if cursor.rowcount == 0:
             return graph_data  # No data
@@ -541,25 +542,18 @@ FROM
         headers = [desc[0] for desc in cursor.description]
 
         # Return results as a list for each value, rather than records.
-        results = tuple(zip(*cursor.fetchall()))
+        # results = tuple(zip(*cursor.fetchall()))
         t3 = time.time()
+        results = pd.DataFrame(cursor.fetchall(), columns = headers)
         print("Got results in", t3 - t1)
-        for key, value in zip(headers, results):
-            if key == 'dates':
-                if isinstance(value[0], (str, bytes)):
-                    if '\x02DATA:' in value[0]:
-                        value = numpy.char.replace(value, '\x02DATA:', '')
-                    value = numpy.char.replace(value, ' ', 'T')
 
-                if sensor != 'CO2' and station == 'okce':
-                    # Correct off-by-one-year error
-                    datetime_value = numpy.asarray(value).astype(numpy.datetime64) + numpy.timedelta64(365, 'D')
-                    value = datetime_value.astype(str)
-
-                if hasattr(value, 'tolist'):
-                    value = value.tolist()
-
-            graph_data[key] = value
+        ############### Correct off-by-one-year error in data###############
+        if sensor != 'CO2' and station == 'okce':
+            results['dates'] = results['dates'] + numpy.timedelta64(365, 'D')
+        ####################################################################
+        results['dates'] = results['dates'].astype(str)
+        result_dict = results.to_dict('list')
+        graph_data.update(result_dict)
 
         print("processed results in", time.time() - t3)
         print("Got", len(graph_data['dates']), "rows in", time.time() - t1, "seconds")
