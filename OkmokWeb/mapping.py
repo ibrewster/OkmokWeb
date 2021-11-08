@@ -536,7 +536,8 @@ FROM
         cursor.execute(data_query, args)
         if cursor.rowcount == 0:
             return graph_data  # No data
-        print("Ran query in", time.time() - t1)
+        t2 = time.time()
+        print("Ran query in", t2 - t1)
 
         headers = [desc[0] for desc in cursor.description]
 
@@ -544,7 +545,7 @@ FROM
         # results = tuple(zip(*cursor.fetchall()))
         t3 = time.time()
         results = pd.DataFrame(cursor.fetchall(), columns = headers)
-        print("Got results in", t3 - t1)
+        print("Got results in", t3 - t2)
         result_dict = results.to_dict('list')
         print("Converted results to dict in", time.time() - t3)
         # graph_data.update(result_dict)
