@@ -552,7 +552,9 @@ FROM
             results['dates'] = results['dates'] + numpy.timedelta64(365, 'D')
         ####################################################################
         results['dates'] = results['dates'].astype(str)
+        print("Converted dates to strings in", time.time() - t3)
         result_dict = results.to_dict('list')
+        print("Converted results to dict in", time.time() - t3)
         graph_data.update(result_dict)
 
         print("processed results in", time.time() - t3)
