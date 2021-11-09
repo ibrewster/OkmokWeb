@@ -755,12 +755,12 @@ function generateSubgraphLayout(data, titles) {
         },
         'font': { 'size': 12 },
         "images": [{
-            "source": `${img_path}/logos.png`,
+            "source": `${img_path}/okmokweb_logos.png`,
             "xref": "paper",
             "yref": "paper",
             "x": 1,
             "y": 1.008,
-            "sizex": .3762,
+            "sizex": .4649,
             "sizey": .27,
             "xanchor": "right",
             "yanchor": "bottom"
