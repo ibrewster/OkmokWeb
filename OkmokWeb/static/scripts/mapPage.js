@@ -192,7 +192,6 @@ function setZoomRange(event, params) {
     dateToInput.val(formattedTo);
 
     setTitle(parentChart);
-    rescaleY(parentChart, dateFrom, dateTo);
 }
 
 function setGraphRange() {
