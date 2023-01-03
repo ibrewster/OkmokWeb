@@ -526,6 +526,7 @@ FROM
     limit_query = sql.SQL(LIMIT_SQL).format(table = sql.Identifier(station))
 
     with utils.db_cursor() as cursor:
+        print(cursor.mogrify(limit_query, args))
         cursor.execute(limit_query, args)
         info = cursor.fetchone()
         graph_data['info']['min_date'] = info[0]
@@ -533,6 +534,7 @@ FROM
 
         t1 = time.time()
         cursor.execute("SET TIMEZONE='UTC'")
+        print(cursor.mogrify(data_query, args))
         cursor.execute(data_query, args)
         if cursor.rowcount == 0:
             return graph_data  # No data
@@ -542,11 +544,13 @@ FROM
         headers = [desc[0] for desc in cursor.description]
 
         # Return results as a list for each value, rather than records.
-        # results = tuple(zip(*cursor.fetchall()))
+        results = zip(*cursor.fetchall())
         t3 = time.time()
-        results = pd.DataFrame(cursor.fetchall(), columns = headers)
         print("Got results in", t3 - t2)
-        result_dict = results.to_dict('list')
+        result_dict = dict(zip(headers, results))
+        #dates = [x.isoformat() +'Z' for x in result_dict['dates']]
+        #result_dict['dates'] = dates
+        #result_dict = results.to_dict('list')
         print("Converted results to dict in", time.time() - t3)
         # graph_data.update(result_dict)
         result_dict.update(graph_data)
