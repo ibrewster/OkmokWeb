@@ -614,7 +614,7 @@ function graphResults(respData, dest) {
     graphDiv.data('maxDate', data['info']['max_date']);
     graphDiv.data('factor', factor);
 
-    if (data['dates'].length == 0) {
+    if (typeof(data['dates'])=='undefined' || data['dates'].length == 0) {
         //make sure there is no graph in this div
         Plotly.purge(graphDiv[0]);
         graphDiv.parent().show()
@@ -978,8 +978,8 @@ function dom_post(url, args) {
     $("body").append(form)
     form[0].submit()
 
-    // remove the frame after 10 minutes. If it takes more than 10 minutes to 
-    // generate and download the item, then this will cause breakage, but I 
+    // remove the frame after 10 minutes. If it takes more than 10 minutes to
+    // generate and download the item, then this will cause breakage, but I
     // have to choose *some* time...
 
     setTimeout(function() {
