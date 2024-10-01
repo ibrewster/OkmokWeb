@@ -320,7 +320,7 @@ def gen_map_image():
 
     fig.plot(x = station_data.lng, y = station_data.lat,
              style = "c0.5i",
-             color = '73/0/244',
+             fill = '73/0/244',
              pen = '2p,white')
 
     fig.text(x = station_data.lng, y = station_data.lat,
@@ -398,7 +398,7 @@ def get_graph_data(as_json=True, station=None, sensor = None,
 
     data = load_db_data(station, sensor,
                         date_from = date_from,
-                        date_to = date_to, 
+                        date_to = date_to,
                         factor=factor)
 
     resp_data = {'factor': factor,
@@ -491,13 +491,13 @@ def load_db_data(station, sensor,
         adtl_where.append("date_time>=%s")
         if sensor != 'CO2' and station == 'okce':
             date_from = date_from.replace(year = date_from.year - 1)
-    
+
         args.append(date_from)
     if date_to is not None:
         adtl_where.append("date_time<%s")
         if sensor != 'CO2' and station == 'okce':
             date_to = date_to.replace(year = date_to.year - 1)
-            
+
         args.append(date_to)
 
     if adtl_where:
