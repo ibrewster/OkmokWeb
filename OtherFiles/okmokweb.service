@@ -6,11 +6,14 @@ After = network.target
 ExecStart = /shared/apps/okmokweb/okmok-env/bin/uwsgi -i /shared/apps/okmokweb/web/OtherFiles/okmokweb.ini
 User=www-data
 Group=www-data
-RuntimeDirectory = okmokweb
-RuntimeDirectoryMode = 777
+RuntimeDirectory=okmokweb
+RuntimeDirectoryMode=777
 Restart=on-failure
 RestartSec=15s
-Enviroment="HOME=/shared/apps/okmokweb"
+Environment="HOME=/shared/apps/okmokweb"
+Environment="PLOTLY_HOME=${HOME}"
+Environment="GMT_USERDIR=${HOME}"
+Environment="GMT_TMPDIR=/shared/apps/okmokweb"
 
 [Install]
 WantedBy = multi-user.target
