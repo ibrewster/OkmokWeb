@@ -467,8 +467,8 @@ def load_db_data(station, sensor,
     args = []
 
     dates = '''to_char(date_time,'YYYY-MM-DD"T"HH24:MI:SSZ')'''
-    if sensor != 'CO2' and station == 'okce':
-        dates = '''to_char(date_time+'1 year'::interval,'YYYY-MM-DD"T"HH24:MI:SSZ')'''
+    # if sensor != 'CO2' and station == 'okce':
+        # dates = '''to_char(date_time+'1 year'::interval,'YYYY-MM-DD"T"HH24:MI:SSZ')'''
 
     SQL = f'''SELECT {{fields}}, {dates} as dates FROM {{table}}'''
 
@@ -490,13 +490,13 @@ def load_db_data(station, sensor,
     if date_from is not None:
         adtl_where.append("date_time>=%s")
         if sensor != 'CO2' and station == 'okce':
-            date_from = date_from.replace(year = date_from.year - 1)
+            date_from = utils.reverse_station_date(date_from)
 
         args.append(date_from)
     if date_to is not None:
         adtl_where.append("date_time<%s")
         if sensor != 'CO2' and station == 'okce':
-            date_to = date_to.replace(year = date_to.year - 1)
+            date_to = utils.reverse_station_date(date_to)
 
         args.append(date_to)
 
@@ -546,6 +546,7 @@ FROM
         cursor.execute(data_query, args)
         if cursor.rowcount == 0:
             return graph_data  # No data
+
         t2 = time.time()
         print("Ran query in", t2 - t1)
 
@@ -556,6 +557,9 @@ FROM
         t3 = time.time()
         print("Got results in", t3 - t2)
         result_dict = dict(zip(headers, results))
+        if sensor != 'CO2' and station == 'okce':
+            dates = [utils.correct_station_date(x) for x in result_dict['dates']]
+            result_dict['dates'] = dates
         #dates = [x.isoformat() +'Z' for x in result_dict['dates']]
         #result_dict['dates'] = dates
         #result_dict = results.to_dict('list')
