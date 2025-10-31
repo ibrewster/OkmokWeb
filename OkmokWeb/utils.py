@@ -56,7 +56,7 @@ def is_leap_year(year):
 
 
 class db_cursor():
-    def __init__(self, cursor_factory=None, database = 'carbon', host = "akutan.snap.uaf.edu"):
+    def __init__(self, cursor_factory=None, database = 'carbon', host = "akutan.avo.alaska.edu"):
         self._cursor_factory = cursor_factory
         self._db = database
         self._host = host
@@ -93,7 +93,7 @@ def load_stations():
 
     try:
         with db_cursor(cursor_factory = RealDictCursor,
-                       database = 'volcano_seismology', host = "137.229.113.120") as cursor:
+                       database = 'geodesy', host = "akutan.avo.alaska.edu") as cursor:
             cursor.execute(SQL)
             stas = {row['name']: dict(row)
                     for row in cursor}
