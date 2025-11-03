@@ -353,7 +353,7 @@ def list_stations():
 @app.route('/get_graph_data')
 @compress.compressed()
 def get_graph_data(as_json=True, station=None, sensor = None,
-                   date_from=None, date_to=None, factor = 100):
+                   date_from=None, date_to=None, factor = "auto"):
 
     if station is None:
         station = flask.request.args['station']
@@ -507,10 +507,10 @@ def load_db_data(station, sensor,
             SQL += ' AND '
         SQL += " AND ".join(adtl_where)
 
-    # if factor != 100:
-        # print("Running query with factor", factor)
-        # postfix = f" AND epoch%%{PERCENT_LOOKUP.get(factor,'1=0')}"
-        # SQL += postfix
+    if factor != 100:
+        print("Running query with factor", factor)
+        postfix = f" AND epoch%%{PERCENT_LOOKUP.get(factor,'1=0')}"
+        SQL += postfix
 
     SQL += " ORDER BY date_time"
 

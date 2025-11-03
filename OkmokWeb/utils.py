@@ -19,12 +19,12 @@ def correct_station_date(station_timestamp):
         # Almost the same, except the date subtraction needs to happen
         # *after* year substitution, not before.
         if station_timestamp.month == 3 and station_timestamp.day == 1:
-            return station_timestamp.replace(year=target_year) - timedelta(days=1)
+            station_timestamp = station_timestamp.replace(year=target_year) - timedelta(days=1)
+        else:
+            station_timestamp -= timedelta(days=1)
 
-        station_timestamp -= timedelta(days=1)
-
-        # In the cases where we subtract a day, the year might change.
-        target_year = station_timestamp.year + 1
+            # In the cases where we subtract a day, the year might change.
+            target_year = station_timestamp.year + 1
 
     result = station_timestamp.replace(year=target_year) - timedelta(hours = 1)
     if as_str:
